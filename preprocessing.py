@@ -1,12 +1,10 @@
-# Full preprocessing pipeline for MP3 + chord annotation (24-chord classification)
-
 import json
 import librosa
 import numpy as np
 import re
 
 
-# --- Config ---
+# 定数
 SR = 22050  # Sampling rate
 CHORD_LABELS_24 = [
     'C', 'Cm', 'C#', 'C#m', 'D', 'Dm', 'D#', 'D#m',
@@ -16,7 +14,7 @@ CHORD_LABELS_24 = [
 CHORD_LABELS_25 = CHORD_LABELS_24 + ['N']
 label_to_index = {label: i for i, label in enumerate(CHORD_LABELS_25)}
 
-# --- Chord normalization ---
+# コードのルートとメジャー,マイナーを抽出
 def normalize_chord(chord_name):
     if chord_name == "N":
         return "N"
@@ -27,10 +25,12 @@ def normalize_chord(chord_name):
     quality = match.group(2)
     return root + 'm' if quality == 'm' else root
 
-# --- Load chord annotation ---
+# 一つのコードごとに開始時間, 終了時間, コードのlabel_to_indexでのラベルを取得
 def load_chord_segments(json_path):
     with open(json_path) as f:
         data = json.load(f)
+        if data == {}:
+            return None
     segments = []
     for chord in data["chords"]:
         start = chord["start"] / 1000
@@ -42,24 +42,25 @@ def load_chord_segments(json_path):
         segments.append((start, end, label))
     return segments
 
-# --- Match timestamp to chord label ---
+# 時間とコード列をマッチさせる
 def get_chord_label_at_time(t, segments):
     for start, end, label in segments:
         if start <= t < end:
             return label
     return label_to_index['N']
 
-# --- Preprocessing pipeline ---
+# このファイルでのメイン処理
 def preprocess(mp3_path, chord_json_path):
+    chord_segments = load_chord_segments(chord_json_path)
+    if chord_segments is None:
+        return None, None
     y, sr = librosa.load(mp3_path, sr=SR)
-    tempo, beats = librosa.beat.beat_track(y=y, sr=sr)
+    _, beats = librosa.beat.beat_track(y=y, sr=sr)
     times = librosa.frames_to_time(beats, sr=sr)
     chroma = librosa.feature.chroma_cqt(y=y, sr=sr)
 
-    chord_segments = load_chord_segments(chord_json_path)
-
-    X = []  # Chroma features
-    y_labels = []  # Corresponding chord labels
+    X = []
+    y_labels = []
 
     for i in range(len(times) - 1):
         t_start = times[i]
@@ -79,8 +80,11 @@ def preprocess(mp3_path, chord_json_path):
 
 def preprocess_dataset(ids):
     X_all, y_all = [], []
-    for id in ids:
+    for idx, id in enumerate(ids):
+        print(idx)
         X, y = preprocess(f'data/audio/{id}.mp3', f'data/chord/{id}.json')
+        if X is None:
+            continue
         X_all.append(X)
         y_all.append(y)
     return np.vstack(X_all), np.hstack(y_all)

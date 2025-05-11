@@ -1,5 +1,5 @@
 from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestClassifier
+from sklearn import svm
 from sklearn.metrics import classification_report
 from preprocessing import preprocess_dataset
 import csv
@@ -17,8 +17,7 @@ index_to_label = {i: label for label, i in label_to_index.items()}
 def randomforest(ids):
     X_train, y_train = preprocess_dataset(ids[:250])
     X_test, y_test = preprocess_dataset(ids[250:])
-
-    clf = RandomForestClassifier(n_estimators=100, random_state=42)
+    clf = svm.SVC(gamma="scale")
     clf.fit(X_train, y_train)
     y_pred = clf.predict(X_test)
 
