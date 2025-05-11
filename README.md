@@ -6,7 +6,7 @@
 以下のコマンドでデータをダウンロード
 ```batch
 cd data
-dataset.py
+python3 dataset.py
 ```
 その後、書くモデル名がついたファイルを実行
 ```batch
