@@ -6,12 +6,7 @@
 - ランダムフォレスト
 - サポートベクタマシン
 ## 実行
-以下のコマンドでデータをダウンロード
-```batch
-cd data
-python3 dataset.py
-```
-その後、モデル名がついたファイルを実行
+モデル名がついたファイルを実行
 ```batch
 python3 randomforest.py   
 ```

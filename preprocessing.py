@@ -2,6 +2,8 @@ import json
 import librosa
 import numpy as np
 import re
+import itertools
+import csv
 
 
 # 定数
@@ -88,3 +90,14 @@ def preprocess_dataset(ids):
         X_all.append(X)
         y_all.append(y)
     return np.vstack(X_all), np.hstack(y_all)
+
+def main():
+    with open('data/id.csv') as f:
+        ids = list(itertools.chain.from_iterable(csv.reader(f)))
+    ids_idx = int(len(ids) * 0.7)
+    X_train, y_train = preprocess_dataset(ids[:ids_idx])
+    X_test, y_test = preprocess_dataset(ids[ids_idx:])
+    np.savez('data/audio_and_chord', X_train=X_train, y_train=y_train, X_test=X_test, y_test=y_test)
+
+if __name__ == '__main__':
+    main()
