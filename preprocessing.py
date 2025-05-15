@@ -4,6 +4,7 @@ import numpy as np
 import re
 import itertools
 import csv
+import os
 
 
 # 定数
@@ -80,11 +81,42 @@ def preprocess(mp3_path, chord_json_path):
 
     return np.array(X), np.array(y_labels)
 
-def preprocess_dataset(ids):
+def preprocess_cnn(mp3_path, chord_json_path, patch_len=16, hop_len=8):
+    y, sr = librosa.load(mp3_path, sr=SR)
+    chroma = librosa.feature.chroma_cqt(y=y, sr=sr)  # shape: (12, T)
+    chord_segments = load_chord_segments(chord_json_path)
+    if chord_segments is None:
+        return None, None
+
+    # --- chroma → パッチ (B, 1, 12, patch_len) ---
+    chroma_patches = []
+    labels = []
+
+    total_frames = chroma.shape[1]
+    for start in range(0, total_frames - patch_len + 1, hop_len):
+        patch = chroma[:, start:start + patch_len]  # (12, patch_len)
+        chroma_patches.append(patch)
+
+        # 対応するラベルを取得（中央時刻）
+        patch_times = librosa.frames_to_time(np.arange(start, start + patch_len), sr=sr)
+        mid_time = patch_times[patch_len // 2]
+        label = get_chord_label_at_time(mid_time, chord_segments)
+        labels.append(label)
+
+    X = np.stack(chroma_patches)[:, np.newaxis, :, :]  # shape: (B, 1, 12, patch_len)
+    y_labels = np.array(labels)
+
+    return X, y_labels
+
+
+def preprocess_dataset(ids, is_cnn=False):
     X_all, y_all = [], []
     for idx, id in enumerate(ids):
         print(idx)
-        X, y = preprocess(f'data/audio/{id}.mp3', f'data/chord/{id}.json')
+        if is_cnn:
+            X, y = preprocess_cnn(f'data/audio/{id}.mp3', f'data/chord/{id}.json')
+        else:
+            X, y = preprocess(f'data/audio/{id}.mp3', f'data/chord/{id}.json')
         if X is None:
             continue
         X_all.append(X)
@@ -92,12 +124,20 @@ def preprocess_dataset(ids):
     return np.vstack(X_all), np.hstack(y_all)
 
 def main():
-    with open('data/id.csv') as f:
-        ids = list(itertools.chain.from_iterable(csv.reader(f)))
+    chord_dir = "data/chord"
+
+    ids = [os.path.splitext(f)[0] for f in os.listdir(chord_dir) if os.path.isfile(os.path.join(chord_dir, f))]
     ids_idx = int(len(ids) * 0.7)
+
+    # 汎用
     X_train, y_train = preprocess_dataset(ids[:ids_idx])
     X_test, y_test = preprocess_dataset(ids[ids_idx:])
     np.savez('data/audio_and_chord', X_train=X_train, y_train=y_train, X_test=X_test, y_test=y_test)
+
+    # CNN
+    X_train, y_train = preprocess_dataset(ids[:ids_idx], True)
+    X_test, y_test = preprocess_dataset(ids[ids_idx:], True)
+    np.savez('data/audio_and_chord_cnn', X_train=X_train, y_train=y_train, X_test=X_test, y_test=y_test)
 
 if __name__ == '__main__':
     main()

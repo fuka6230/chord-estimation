@@ -5,7 +5,7 @@ import csv
 import itertools
 
 def main():
-    with open('id.csv') as f:
+    with open('id2.csv') as f:
         ids = list(itertools.chain.from_iterable(csv.reader(f)))
 
     get_chord_progression(ids)

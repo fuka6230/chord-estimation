@@ -31,10 +31,9 @@ def get_all_ids_from_playlist(playlist_id):
     return all_video_ids
 
 def write_to_id_csv():
-    playlist_ids = ["PL6c6sPNdnX_UjsnvrQ_fssRHcon05f0Xd", "PLSf-HCzj7cOv511WfVw6ijNDgUu8eQZTx", "PLSXruysuXxNgvP3I_1-6ACwpjkS3HakJx", 
-                    "PLtJnHhA9MVicF2uRb7zfOqX34cBpCCdXE", "PLRK6d_2i1MytdbaZYma1zRYWc4YC0IFTN", "PLxKNZPFp--_CjWWCR3Abt79-Y5u6FPmd2"]
+    playlist_ids = ["PLMEIp91wFFUHlkBTRSBUgi5po63AJD_-C"]
 
-    with open('id.csv', 'w') as f:
+    with open('id.csv', 'a') as f:
         writer = csv.writer(f)
         for playlist_id in playlist_ids:
             ids = get_all_ids_from_playlist(playlist_id)
